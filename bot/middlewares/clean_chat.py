@@ -25,15 +25,17 @@ class CleanChatMiddleware(BaseMiddleware):
         
         # Если пришло обычное текстовое/медиа сообщение от пользователя
         if isinstance(event, Message):
+            is_critical = event.text and event.text.startswith(("/start", "/menu", "/admin"))
             old_msg_id = self.last_user_msg.get(user_id)
-            if old_msg_id:
+            if old_msg_id and not is_critical:
                 try:
                     await event.bot.delete_message(event.chat.id, old_msg_id)
                 except Exception:
                     pass
             
             # Сохраняем текущее
-            self.last_user_msg[user_id] = event.message_id
+            if not is_critical:
+                self.last_user_msg[user_id] = event.message_id
             chat_id = event.chat.id
             
         elif isinstance(event, CallbackQuery):

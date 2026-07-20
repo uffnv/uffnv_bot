@@ -30,51 +30,64 @@ async def send_main_menu(target: Message | CallbackQuery, first_name: str, state
     if state:
         await state.clear()
 
-    img = generate_main_card(first_name)
-    photo = BufferedInputFile(img.read(), filename="menu.png")
-    caption = (
-        f"Привет, <b>{first_name}</b>! 👋\n\n"
-        "Я помогу тебе держать под контролем финансы, питание и дела.\n"
-        "Что открываем?"
-    )
+    try:
+        img = generate_main_card(first_name)
+        photo = BufferedInputFile(img.read(), filename="menu.png")
+        caption = (
+            f"Привет, <b>{first_name}</b>! 👋\n\n"
+            "Я помогу тебе держать под контролем финансы, питание и дела.\n"
+            "Что открываем?"
+        )
 
-    if isinstance(target, CallbackQuery):
-        # Удаляем старое сообщение и шлём новое с картинкой
-        try:
-            await target.message.delete()
-        except Exception:
-            pass
-        await target.message.answer_photo(photo=photo, caption=caption,
-                                          parse_mode="HTML", reply_markup=main_menu_kb())
-        await target.answer()
-    else:
-        await target.answer_photo(photo=photo, caption=caption,
-                                  parse_mode="HTML", reply_markup=main_menu_kb())
+        if isinstance(target, CallbackQuery):
+            # Удаляем старое сообщение и шлём новое с картинкой
+            try:
+                await target.message.delete()
+            except Exception:
+                pass
+            await target.message.answer_photo(photo=photo, caption=caption,
+                                              parse_mode="HTML", reply_markup=main_menu_kb())
+            await target.answer()
+        else:
+            await target.answer_photo(photo=photo, caption=caption,
+                                      parse_mode="HTML", reply_markup=main_menu_kb())
+    except Exception as e:
+        if isinstance(target, CallbackQuery):
+            await target.message.answer(f"❌ Критическая ошибка генерации меню: {str(e)}")
+            await target.answer()
+        else:
+            await target.answer(f"❌ Критическая ошибка генерации меню: {str(e)}")
 
 
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext, clear_user_message: callable):
-    await state.clear()
-    await clear_user_message()
-    async with AsyncSessionLocal() as session:
-        user = await get_or_create_user(
-            session,
-            telegram_id=message.from_user.id,
-            username=message.from_user.username,
-            first_name=message.from_user.first_name,
-        )
-        await ensure_default_categories(session, user.id)
+    try:
+        await state.clear()
+        await clear_user_message()
+        async with AsyncSessionLocal() as session:
+            user = await get_or_create_user(
+                session,
+                telegram_id=message.from_user.id,
+                username=message.from_user.username,
+                first_name=message.from_user.first_name,
+            )
+            await ensure_default_categories(session, user.id)
 
-    name = message.from_user.first_name or message.from_user.username or "друг"
-    await send_main_menu(message, name)
+        name = message.from_user.first_name or message.from_user.username or "друг"
+        await send_main_menu(message, name)
+    except Exception as e:
+        await message.answer(f"❌ Ошибка при запуске: {str(e)}")
 
 
 @router.message(Command("menu"))
 async def cmd_menu(message: Message, state: FSMContext, clear_user_message: callable):
-    await state.clear()
-    await clear_user_message()
-    name = message.from_user.first_name or "друг"
-    await send_main_menu(message, name)
+    try:
+        await state.clear()
+        await clear_user_message()
+        name = message.from_user.first_name or "друг"
+        await send_main_menu(message, name)
+    except Exception as e:
+        await message.answer(f"❌ Ошибка меню: {str(e)}")
 
 
 @router.callback_query(F.data == "menu:main")
