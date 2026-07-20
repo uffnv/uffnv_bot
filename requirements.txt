@@ -1,0 +1,7 @@
+aiogram>=3.4.0
+sqlalchemy>=2.0.25
+aiosqlite>=0.20.0
+Pillow>=10.2.0
+apscheduler>=3.10.4
+pytz>=2024.1
+aiohttp>=3.9.3
