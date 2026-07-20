@@ -198,6 +198,15 @@ async def get_transactions(session: AsyncSession, user_id: int,
     return result.scalars().all()
 
 
+async def get_transactions_history(session: AsyncSession, user_id: int, limit: int = 10, offset: int = 0) -> list[Transaction]:
+    result = await session.execute(
+        select(Transaction).where(Transaction.user_id == user_id)
+        .order_by(Transaction.date.desc(), Transaction.created_at.desc())
+        .limit(limit).offset(offset)
+    )
+    return result.scalars().all()
+
+
 async def get_balance(session: AsyncSession, user_id: int,
                        from_date: date, to_date: date) -> dict:
     """Возвращает {income, expense, balance}."""
@@ -222,6 +231,23 @@ async def delete_transaction(session: AsyncSession, tx_id: int, user_id: int) ->
         await session.commit()
         return True
     return False
+
+
+async def delete_transactions_period(session: AsyncSession, user_id: int, from_date: date, to_date: date) -> int:
+    txs = await get_transactions(session, user_id, from_date, to_date)
+    count = 0
+    for tx in txs:
+        acc = await session.get(Account, tx.account_id)
+        if acc:
+            if tx.type == TransactionType.income:
+                acc.balance -= tx.amount
+            else:
+                acc.balance += tx.amount
+        await session.delete(tx)
+        count += 1
+    if count > 0:
+        await session.commit()
+    return count
 
 
 # ─── Budget ───────────────────────────────────────────────────────────────────
@@ -474,6 +500,20 @@ async def delete_task(session: AsyncSession, task_id: int, user_id: int) -> bool
     return False
 
 
+async def delete_completed_tasks(session: AsyncSession, user_id: int) -> int:
+    result = await session.execute(
+        select(Task).where(Task.user_id == user_id, Task.is_done == True)
+    )
+    tasks = result.scalars().all()
+    count = 0
+    for task in tasks:
+        await session.delete(task)
+        count += 1
+    if count > 0:
+        await session.commit()
+    return count
+
+
 async def get_productivity_stats(session: AsyncSession, user_id: int,
                                   days: int = 7) -> dict:
     from_date = date.today() - timedelta(days=days)
@@ -540,3 +580,16 @@ async def update_physical_plan(
     if profile:
         profile.plan = plan
         await session.commit()
+
+async def delete_food_logs_for_date(session: AsyncSession, user_id: int, log_date: date) -> int:
+    result = await session.execute(
+        select(FoodLog).where(FoodLog.user_id == user_id, FoodLog.date == log_date)
+    )
+    logs = result.scalars().all()
+    count = 0
+    for log in logs:
+        await session.delete(log)
+        count += 1
+    if count > 0:
+        await session.commit()
+    return count

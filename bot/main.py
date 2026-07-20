@@ -43,7 +43,7 @@ async def main():
 
     bot = Bot(
         token=BOT_TOKEN,
-        default=DefaultBotProperties(parse_mode=ParseMode.HTML)
+        default=DefaultBotProperties(parse_mode=ParseMode.HTML, disable_notification=True)
     )
     dp = Dispatcher(storage=MemoryStorage())
 

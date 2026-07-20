@@ -292,7 +292,7 @@ async def cb_balance(callback: CallbackQuery):
         f"📉 Расход: -{m_exp:,.0f} ₽\n"
         f"Остаток: <b>{(m_inc - m_exp):,.0f} ₽</b>",
         parse_mode="HTML",
-        reply_markup=history_kb(has_more=False)  # Просто кнопка назад
+        reply_markup=history_kb(txs=[], has_more=False)
     )
     await callback.answer()
 
@@ -311,7 +311,7 @@ async def cb_history_page(callback: CallbackQuery):
 async def _show_history_page(callback: CallbackQuery, page: int):
     LIMIT = 10
     async with AsyncSessionLocal() as session:
-        txs = await crud.get_transactions(session, callback.from_user.id, limit=LIMIT + 1, offset=page * LIMIT)
+        txs = await crud.get_transactions_history(session, callback.from_user.id, limit=LIMIT + 1, offset=page * LIMIT)
     
     has_more = len(txs) > LIMIT
     display_txs = txs[:LIMIT]
@@ -335,9 +335,46 @@ async def _show_history_page(callback: CallbackQuery, page: int):
         
     await callback.message.answer(
         text, parse_mode="HTML",
-        reply_markup=history_kb(has_more=has_more, page=page)
+        reply_markup=history_kb(txs=display_txs, has_more=has_more, page=page)
     )
     await callback.answer()
+
+
+@router.callback_query(F.data.startswith("finance:deltx:"))
+async def cb_delete_transaction(callback: CallbackQuery):
+    tx_id = int(callback.data.split(":")[2])
+    async with AsyncSessionLocal() as session:
+        success = await crud.delete_transaction(session, tx_id, callback.from_user.id)
+    if success:
+        await callback.answer("✅ Транзакция удалена!")
+        await cb_history_first_page(callback)
+    else:
+        await callback.answer("❌ Ошибка удаления.", show_alert=True)
+
+
+@router.callback_query(F.data == "finance:clear_all")
+async def cb_clear_all_history(callback: CallbackQuery):
+    await callback.message.edit_text(
+        "🧨 <b>Внимание!</b> Ты собираешься удалить ВСЕ транзакции. Баланс счетов будет пересчитан.\n\nПродолжить?",
+        parse_mode="HTML",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="💣 ДА, УДАЛИТЬ ВСЁ", callback_data="finance:confirm_clear_all")],
+            [InlineKeyboardButton(text="❌ Отмена", callback_data="finance:history")]
+        ])
+    )
+    await callback.answer()
+
+
+@router.callback_query(F.data == "finance:confirm_clear_all")
+async def cb_confirm_clear_all_history(callback: CallbackQuery):
+    async with AsyncSessionLocal() as session:
+        # Удаляем транзакции от начала времен до текущего момента
+        from_d = date(2000, 1, 1)
+        to_d = date(2100, 1, 1)
+        count = await crud.delete_transactions_period(session, callback.from_user.id, from_d, to_d)
+    await callback.answer(f"✅ Удалено транзакций: {count}", show_alert=True)
+    await cb_history_first_page(callback)
+
 
 
 # ─── Категории ────────────────────────────────────────────────────────────────

@@ -17,6 +17,7 @@ def fitness_menu_kb() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="🎯 Мои цели", callback_data="fitness:goals"),
         InlineKeyboardButton(text="🏋️ Мой план", callback_data="fitness:myplan"),
     )
+    builder.row(InlineKeyboardButton(text="🔄 Сбросить день", callback_data="fitness:cleartoday"))
     builder.row(InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu:main"))
     return builder.as_markup()
 

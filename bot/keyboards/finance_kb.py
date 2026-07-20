@@ -82,8 +82,19 @@ def budget_period_kb() -> InlineKeyboardMarkup:
     return builder.as_markup()
 
 
-def history_kb(has_more: bool, page: int = 0) -> InlineKeyboardMarkup:
+def history_kb(txs: list, has_more: bool, page: int = 0) -> InlineKeyboardMarkup:
     builder = InlineKeyboardBuilder()
+    
+    # Кнопки для удаления транзакций
+    for tx in txs:
+        cat_name = tx.category.name if tx.category else "Без категории"
+        sign = "+" if tx.type == TransactionType.income else "-"
+        text = f"🗑 {cat_name} {sign}{tx.amount:,.0f}"
+        builder.row(InlineKeyboardButton(text=text, callback_data=f"finance:deltx:{tx.id}"))
+    
+    # Кнопка очистки за текущий месяц
+    builder.row(InlineKeyboardButton(text="💣 Сбросить всю историю", callback_data="finance:clear_all"))
+    
     nav_row = []
     if page > 0:
         nav_row.append(InlineKeyboardButton(text="⬅️", callback_data=f"finance:hist_page:{page-1}"))

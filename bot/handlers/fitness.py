@@ -119,6 +119,19 @@ async def cb_back_fitness(callback: CallbackQuery, state: FSMContext):
     await _send_fitness_menu(callback, state)
 
 
+@router.callback_query(F.data == "fitness:cleartoday")
+async def cb_clear_today(callback: CallbackQuery):
+    async with AsyncSessionLocal() as session:
+        user = await crud.get_or_create_user(
+            session, callback.from_user.id,
+            callback.from_user.username, callback.from_user.first_name
+        )
+        today = crud.user_today(user)
+        count = await crud.delete_food_logs_for_date(session, callback.from_user.id, today)
+    await callback.answer(f"✅ Данные за сегодня сброшены (удалено {count} записей).", show_alert=True)
+    await _send_fitness_menu(callback, None)
+
+
 # ─── Мой план ─────────────────────────────────────────────────────────────────
 
 @router.callback_query(F.data == "fitness:myplan")

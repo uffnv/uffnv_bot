@@ -49,7 +49,7 @@ async def send_morning_digest(bot: Bot):
                 lines.append(f"\nВсего задач: <b>{len(tasks)}</b>")
                 text = "\n".join(lines)
 
-            await bot.send_message(user.id, text, parse_mode="HTML")
+            await bot.send_message(user.id, text, parse_mode="HTML", disable_notification=False)
         except Exception as e:
             logger.error(f"Ошибка отправки дайджеста пользователю {user.id}: {e}")
 
@@ -73,7 +73,8 @@ async def send_task_reminders(bot: Bot):
                 f"🔔 <b>Напоминание о задаче!</b>\n\n"
                 f"{emoji} <b>{task.title}</b>\n"
                 + (f"📄 {task.description}" if task.description else ""),
-                parse_mode="HTML"
+                parse_mode="HTML",
+                disable_notification=False
             )
         except Exception as e:
             logger.error(f"Ошибка напоминания для задачи {task.id}: {e}")
@@ -139,7 +140,7 @@ async def accrue_interest(bot: Bot):
                     acc.last_interest_date = today
                     session.add(tx)
                     try:
-                        await bot.send_message(acc.user_id, f"💰 Начислены проценты по счету {acc.name}: {interest_amount:,.0f} ₽")
+                        await bot.send_message(acc.user_id, f"💰 Начислены проценты по счету {acc.name}: {interest_amount:,.0f} ₽", disable_notification=False)
                     except Exception:
                         pass
         await session.commit()

@@ -49,6 +49,8 @@ def done_tasks_list_kb(tasks: list[Task]) -> InlineKeyboardMarkup:
             text=f"✓ {task.title[:35]}",
             callback_data=f"tasks:view:{task.id}"
         ))
+    if tasks:
+        builder.row(InlineKeyboardButton(text="🗑 Очистить завершенные", callback_data="tasks:clear_done"))
     builder.row(InlineKeyboardButton(text="⬅️ Назад", callback_data="tasks:menu"))
     return builder.as_markup()
 

@@ -447,3 +447,11 @@ async def cb_del_task(callback: CallbackQuery):
         await crud.delete_task(session, task_id, callback.from_user.id)
     await callback.answer("Задача удалена 🗑")
     await cb_tasks_list(callback)
+
+
+@router.callback_query(F.data == "tasks:clear_done")
+async def cb_clear_done_tasks(callback: CallbackQuery):
+    async with AsyncSessionLocal() as session:
+        count = await crud.delete_completed_tasks(session, callback.from_user.id)
+    await callback.answer(f"✅ Очищено задач: {count}", show_alert=True)
+    await cb_done_tasks(callback)
