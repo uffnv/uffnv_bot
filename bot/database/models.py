@@ -66,6 +66,8 @@ class User(Base):
     first_name: Mapped[str | None] = mapped_column(String(128))
     timezone: Mapped[str] = mapped_column(String(32), default="UTC")
     digest_time: Mapped[str | None] = mapped_column(String(5))  # "HH:MM"
+    evening_report_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+    evening_report_time: Mapped[str | None] = mapped_column(String(5))  # "HH:MM"
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
     main_account_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("accounts.id", name="fk_user_main_account"), nullable=True)
@@ -81,6 +83,7 @@ class User(Base):
     fitness_goal: Mapped["FitnessGoal | None"] = relationship(back_populates="user", cascade="all, delete-orphan")
     physical_profile: Mapped["PhysicalProfile | None"] = relationship(back_populates="user", cascade="all, delete-orphan")
     tasks: Mapped[list["Task"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    habits: Mapped[list["Habit"]] = relationship(back_populates="user", cascade="all, delete-orphan")
 
 
 # ─── Finance ──────────────────────────────────────────────────────────────────
@@ -241,3 +244,31 @@ class Task(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     user: Mapped["User"] = relationship(back_populates="tasks")
+
+
+# ─── Habits ───────────────────────────────────────────────────────────────────
+
+class Habit(Base):
+    __tablename__ = "habits"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"))
+    name: Mapped[str] = mapped_column(String(128))
+    remind_at: Mapped[str | None] = mapped_column(String(5))  # "HH:MM"
+    streak: Mapped[int] = mapped_column(Integer, default=0)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    user: Mapped["User"] = relationship(back_populates="habits")
+    logs: Mapped[list["HabitLog"]] = relationship(back_populates="habit", cascade="all, delete-orphan")
+
+
+class HabitLog(Base):
+    __tablename__ = "habit_logs"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    habit_id: Mapped[int] = mapped_column(Integer, ForeignKey("habits.id", ondelete="CASCADE"))
+    date: Mapped[date] = mapped_column(Date)
+    is_done: Mapped[bool] = mapped_column(Boolean, default=False)
+
+    habit: Mapped["Habit"] = relationship(back_populates="logs")
+

@@ -9,8 +9,9 @@ from aiogram.fsm.storage.memory import MemoryStorage
 
 from bot.config import BOT_TOKEN
 from bot.database.base import init_db
-from bot.handlers import common, finance, fitness, tasks, admin
+from bot.handlers import common, finance, fitness, tasks, admin, habits, excel
 from bot.scheduler.jobs import setup_scheduler
+from bot.middlewares.clean_chat import CleanChatMiddleware
 from aiohttp import web
 import os
 
@@ -46,10 +47,14 @@ async def main():
         default=DefaultBotProperties(parse_mode=ParseMode.HTML, disable_notification=True)
     )
     dp = Dispatcher(storage=MemoryStorage())
+    dp.message.outer_middleware(CleanChatMiddleware())
+    dp.callback_query.outer_middleware(CleanChatMiddleware())
 
     # Регистрация роутеров
     dp.include_router(common.router)
     dp.include_router(finance.router)
+    dp.include_router(excel.router)
+    dp.include_router(habits.router)
     dp.include_router(tasks.router)
     dp.include_router(fitness.router)
     dp.include_router(admin.router)

@@ -18,6 +18,7 @@ def fitness_menu_kb() -> InlineKeyboardMarkup:
         InlineKeyboardButton(text="🏋️ Мой план", callback_data="fitness:myplan"),
     )
     builder.row(InlineKeyboardButton(text="🔄 Сбросить день", callback_data="fitness:cleartoday"))
+    builder.row(InlineKeyboardButton(text="🔥 Трекер привычек", callback_data="fitness:habits"))
     builder.row(InlineKeyboardButton(text="🏠 Главное меню", callback_data="menu:main"))
     return builder.as_markup()
 
@@ -122,3 +123,22 @@ def my_plan_kb(has_profile: bool) -> InlineKeyboardMarkup:
         builder.row(InlineKeyboardButton(text="🚀 Настроить профиль", callback_data="fitness:setup_profile"))
     builder.row(InlineKeyboardButton(text="⬅️ Назад", callback_data="fitness:menu"))
     return builder.as_markup()
+
+
+# ─── Habits ───────────────────────────────────────────────────────────────────
+
+def habits_menu_kb(habits) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    for h in habits:
+        builder.row(InlineKeyboardButton(text=f"{h.name} (🔥 {h.streak})", callback_data=f"habit:info:{h.id}"))
+    builder.row(InlineKeyboardButton(text="➕ Новая привычка", callback_data="habit:add"))
+    builder.row(InlineKeyboardButton(text="⬅️ Назад", callback_data="fitness:menu"))
+    return builder.as_markup()
+
+
+def habit_info_kb(habit_id: int) -> InlineKeyboardMarkup:
+    builder = InlineKeyboardBuilder()
+    builder.row(InlineKeyboardButton(text="🗑 Удалить привычку", callback_data=f"habit:del:{habit_id}"))
+    builder.row(InlineKeyboardButton(text="⬅️ Назад", callback_data="fitness:habits"))
+    return builder.as_markup()
+

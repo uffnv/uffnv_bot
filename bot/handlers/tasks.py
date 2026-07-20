@@ -107,12 +107,14 @@ async def _send_tasks_menu(callback: CallbackQuery, state: FSMContext = None):
 
 
 @router.callback_query(F.data == "menu:tasks")
-async def cb_tasks_menu(callback: CallbackQuery, state: FSMContext):
+async def cb_tasks_menu(callback: CallbackQuery, state: FSMContext, clear_user_message: callable):
+    await clear_user_message()
     await _send_tasks_menu(callback, state)
 
 
 @router.callback_query(F.data == "tasks:menu")
-async def cb_back_tasks(callback: CallbackQuery, state: FSMContext):
+async def cb_back_tasks(callback: CallbackQuery, state: FSMContext, clear_user_message: callable):
+    await clear_user_message()
     await _send_tasks_menu(callback, state)
 
 

@@ -53,8 +53,9 @@ async def send_main_menu(target: Message | CallbackQuery, first_name: str, state
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext):
+async def cmd_start(message: Message, state: FSMContext, clear_user_message: callable):
     await state.clear()
+    await clear_user_message()
     async with AsyncSessionLocal() as session:
         user = await get_or_create_user(
             session,
@@ -69,32 +70,91 @@ async def cmd_start(message: Message, state: FSMContext):
 
 
 @router.message(Command("menu"))
-async def cmd_menu(message: Message, state: FSMContext):
+async def cmd_menu(message: Message, state: FSMContext, clear_user_message: callable):
     await state.clear()
+    await clear_user_message()
     name = message.from_user.first_name or "друг"
     await send_main_menu(message, name)
 
 
 @router.callback_query(F.data == "menu:main")
-async def cb_main_menu(callback: CallbackQuery, state: FSMContext):
+async def cb_main_menu(callback: CallbackQuery, state: FSMContext, clear_user_message: callable):
     await state.clear()
+    await clear_user_message()
     name = callback.from_user.first_name or "друг"
     await send_main_menu(callback, name, state)
 
 
 @router.callback_query(F.data == "menu:settings")
-async def cb_settings(callback: CallbackQuery):
+async def cb_settings(callback: CallbackQuery, state: FSMContext, clear_user_message: callable):
+    await clear_user_message()
     try:
         await callback.message.delete()
     except Exception:
         pass
+        
+    async with AsyncSessionLocal() as session:
+        from bot.database.models import User
+        user = await session.get(User, callback.from_user.id)
+        
     await callback.message.answer(
         "⚙️ <b>Настройки и профиль</b>\n\n"
-        "Здесь можно настроить часовой пояс — он нужен для правильного времени напоминаний.",
+        "Здесь можно настроить часовой пояс и вечерние отчеты.",
         parse_mode="HTML",
-        reply_markup=settings_kb()
+        reply_markup=settings_kb(user)
     )
     await callback.answer()
+
+
+@router.callback_query(F.data == "settings:toggle_report")
+async def cb_toggle_report(callback: CallbackQuery):
+    async with AsyncSessionLocal() as session:
+        from bot.database.models import User
+        user = await session.get(User, callback.from_user.id)
+        if hasattr(user, 'evening_report_enabled'):
+            user.evening_report_enabled = not user.evening_report_enabled
+            await session.commit()
+            
+    await cb_settings(callback, None, lambda: None)
+
+
+@router.callback_query(F.data == "settings:time_report")
+async def cb_time_report(callback: CallbackQuery, state: FSMContext):
+    await state.set_state("enter_evening_time")
+    await callback.message.edit_text(
+        "⏰ <b>Время отчета</b>\n\nВведи время в формате ЧЧ:ММ (например, 21:00)",
+        parse_mode="HTML"
+    )
+    await callback.answer()
+
+
+@router.message(F.state == "enter_evening_time")
+async def process_evening_time(message: Message, state: FSMContext, clear_user_message: callable):
+    await _safe_delete(message)
+    time_str = message.text.strip()
+    from datetime import datetime
+    try:
+        datetime.strptime(time_str, "%H:%M")
+    except ValueError:
+        await message.answer("Неверный формат. Нужно ЧЧ:ММ (например, 21:00)")
+        return
+        
+    async with AsyncSessionLocal() as session:
+        from bot.database.models import User
+        user = await session.get(User, message.from_user.id)
+        user.evening_report_time = time_str
+        await session.commit()
+        
+    await state.clear()
+    await clear_user_message()
+    await message.answer("✅ Время сохранено!")
+    
+    # Рекурсивно возвращаем в настройки
+    # Для этого проще вызвать главное меню или обновить сообщение
+    from bot.keyboards.main_menu import main_menu_kb
+    name = message.from_user.first_name or "друг"
+    await send_main_menu(message, name)
+
 
 
 @router.callback_query(F.data == "settings:timezone")
@@ -114,7 +174,7 @@ async def cb_set_timezone(callback: CallbackQuery, state: FSMContext):
 
 
 @router.message(TaskStates.enter_timezone)
-async def process_timezone(message: Message, state: FSMContext):
+async def process_timezone(message: Message, state: FSMContext, clear_user_message: callable):
     await _safe_delete(message)
     tz_str = message.text.strip()
     try:
@@ -131,6 +191,7 @@ async def process_timezone(message: Message, state: FSMContext):
         await update_user_timezone(session, message.from_user.id, tz_str)
 
     await state.clear()
+    await clear_user_message()
     name = message.from_user.first_name or "друг"
     await message.answer(
         f"✅ Готово! Часовой пояс <code>{tz_str}</code> установлен.",

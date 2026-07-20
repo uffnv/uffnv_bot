@@ -107,6 +107,29 @@ def setup_scheduler(bot: Bot):
         id="accrue_interest",
         replace_existing=True
     )
+    scheduler.add_job(
+        send_habit_reminders,
+        "cron",
+        minute="*",
+        kwargs={"bot": bot},
+        id="habit_reminders",
+        replace_existing=True
+    )
+    scheduler.add_job(
+        send_evening_reports,
+        "cron",
+        minute="*",
+        kwargs={"bot": bot},
+        id="evening_reports",
+        replace_existing=True
+    )
+    scheduler.add_job(
+        reset_broken_streaks,
+        "cron",
+        hour=0, minute=0,
+        id="reset_streaks",
+        replace_existing=True
+    )
     scheduler.start()
     logger.info("Шедулер запущен")
 
@@ -144,4 +167,80 @@ async def accrue_interest(bot: Bot):
                     except Exception:
                         pass
         await session.commit()
+
+
+async def send_habit_reminders(bot: Bot):
+    now_utc = datetime.now(pytz.utc)
+    current_time = now_utc.strftime("%H:%M")
+
+    async with AsyncSessionLocal() as session:
+        from bot.database.models import Habit
+        from sqlalchemy import select
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        from aiogram.utils.keyboard import InlineKeyboardBuilder
+        
+        habits = (await session.execute(select(Habit))).scalars().all()
+        for habit in habits:
+            if habit.remind_at != current_time:
+                continue
+            
+            builder = InlineKeyboardBuilder()
+            builder.row(InlineKeyboardButton(text="✅ Сделано", callback_data=f"habit:done:{habit.id}"))
+            builder.row(InlineKeyboardButton(text="❌ Убрать", callback_data="habit:ignore"))
+            
+            try:
+                await bot.send_message(
+                    habit.user_id,
+                    f"🔥 <b>Трекер привычек</b>\n\nПришло время для: <b>{habit.name}</b>\nСтрик: 🔥 {habit.streak}",
+                    parse_mode="HTML",
+                    reply_markup=builder.as_markup(),
+                    disable_notification=False
+                )
+            except Exception:
+                pass
+
+
+async def reset_broken_streaks():
+    from bot.database.models import Habit, HabitLog
+    from sqlalchemy import select
+    from datetime import date, timedelta
+    yesterday = date.today() - timedelta(days=1)
+    async with AsyncSessionLocal() as session:
+        habits = (await session.execute(select(Habit))).scalars().all()
+        for habit in habits:
+            if habit.streak > 0:
+                stmt = select(HabitLog).where(HabitLog.habit_id == habit.id, HabitLog.date == yesterday)
+                log = (await session.execute(stmt)).scalar_one_or_none()
+                if not log or not log.is_done:
+                    habit.streak = 0
+        await session.commit()
+
+
+async def send_evening_reports(bot: Bot):
+    now_utc = datetime.now(pytz.utc)
+    current_time = now_utc.strftime("%H:%M")
+
+    async with AsyncSessionLocal() as session:
+        users = await crud.get_all_users(session)
+
+    for user in users:
+        if not getattr(user, 'evening_report_enabled', False) or getattr(user, 'evening_report_time', None) != current_time:
+            continue
+
+        try:
+            async with AsyncSessionLocal() as session:
+                user_tz = pytz.timezone(user.timezone)
+                user_now = datetime.now(user_tz)
+                today = user_now.date()
+                tasks = await crud.get_tasks_for_date(session, user.id, today)
+                done_tasks = [t for t in tasks if t.is_done]
+                
+            text = (
+                f"🌙 <b>Итоги дня ({today.strftime('%d.%m.%Y')}):</b>\n\n"
+                f"✅ Выполнено задач: <b>{len(done_tasks)} / {len(tasks)}</b>\n"
+                f"Отличная работа! Отдыхай и набирайся сил. 💤"
+            )
+            await bot.send_message(user.id, text, parse_mode="HTML", disable_notification=False)
+        except Exception as e:
+            logger.error(f"Ошибка вечернего отчета: {e}")
 

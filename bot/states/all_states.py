@@ -74,3 +74,8 @@ class TaskStates(StatesGroup):
     digest_time = State()
     # Часовой пояс
     enter_timezone = State()
+
+
+class HabitStates(StatesGroup):
+    enter_name = State()
+    enter_time = State()

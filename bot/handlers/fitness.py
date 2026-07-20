@@ -110,12 +110,14 @@ async def _send_fitness_menu(callback: CallbackQuery, state: FSMContext = None):
 # ─── Меню ─────────────────────────────────────────────────────────────────────
 
 @router.callback_query(F.data == "menu:fitness")
-async def cb_fitness_menu(callback: CallbackQuery, state: FSMContext):
+async def cb_fitness_menu(callback: CallbackQuery, state: FSMContext, clear_user_message: callable):
+    await clear_user_message()
     await _send_fitness_menu(callback, state)
 
 
 @router.callback_query(F.data == "fitness:menu")
-async def cb_back_fitness(callback: CallbackQuery, state: FSMContext):
+async def cb_back_fitness(callback: CallbackQuery, state: FSMContext, clear_user_message: callable):
+    await clear_user_message()
     await _send_fitness_menu(callback, state)
 
 

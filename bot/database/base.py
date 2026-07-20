@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import text
 
 from bot.config import DATABASE_URL
 
@@ -17,7 +18,18 @@ async def get_session() -> AsyncSession:
 
 
 async def init_db():
-    """Создаёт все таблицы при запуске (без Alembic для простоты)."""
+    """Создаёт все таблицы при запуске и проверяет недостающие колонки."""
     async with engine.begin() as conn:
         from bot.database import models  # noqa — зарегистрировать модели
         await conn.run_sync(Base.metadata.create_all)
+        
+        # Ручная миграция для добавления новых колонок, если их нет
+        try:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN evening_report_enabled BOOLEAN DEFAULT FALSE;"))
+        except Exception:
+            pass  # Колонка уже есть
+            
+        try:
+            await conn.execute(text("ALTER TABLE users ADD COLUMN evening_report_time VARCHAR(5);"))
+        except Exception:
+            pass  # Колонка уже есть

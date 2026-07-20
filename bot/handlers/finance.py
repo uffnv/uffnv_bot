@@ -98,12 +98,14 @@ async def _send_finance_menu(callback: CallbackQuery, state: FSMContext = None):
 
 
 @router.callback_query(F.data == "menu:finance")
-async def cb_finance_menu(callback: CallbackQuery, state: FSMContext):
+async def cb_finance_menu(callback: CallbackQuery, state: FSMContext, clear_user_message: callable):
+    await clear_user_message()
     await _send_finance_menu(callback, state)
 
 
 @router.callback_query(F.data == "finance:menu")
-async def cb_back_finance(callback: CallbackQuery, state: FSMContext):
+async def cb_back_finance(callback: CallbackQuery, state: FSMContext, clear_user_message: callable):
+    await clear_user_message()
     await _send_finance_menu(callback, state)
 
 
