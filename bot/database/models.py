@@ -70,7 +70,7 @@ class User(Base):
     evening_report_time: Mapped[str | None] = mapped_column(String(5))  # "HH:MM"
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     
-    main_account_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("accounts.id", name="fk_user_main_account"), nullable=True)
+    main_account_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("accounts.id", name="fk_user_main_account"), nullable=True)
 
     # Relationships
     accounts: Mapped[list["Account"]] = relationship("Account", back_populates="user", foreign_keys="Account.user_id")
@@ -91,7 +91,7 @@ class User(Base):
 class Account(Base):
     __tablename__ = "accounts"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(128))
     balance: Mapped[float] = mapped_column(Numeric(12, 2), default=0.0)
@@ -110,7 +110,7 @@ class Account(Base):
 class FinanceCategory(Base):
     __tablename__ = "finance_categories"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(String(128))
     type: Mapped[TransactionType] = mapped_column(Enum(TransactionType))
@@ -123,10 +123,10 @@ class FinanceCategory(Base):
 class Transaction(Base):
     __tablename__ = "transactions"
 
-    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     user_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.id", ondelete="CASCADE"))
-    account_id: Mapped[int] = mapped_column(BigInteger, ForeignKey("accounts.id", ondelete="CASCADE"))
-    category_id: Mapped[int | None] = mapped_column(BigInteger, ForeignKey("finance_categories.id", ondelete="SET NULL"), nullable=True)
+    account_id: Mapped[int] = mapped_column(Integer, ForeignKey("accounts.id", ondelete="CASCADE"))
+    category_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("finance_categories.id", ondelete="SET NULL"), nullable=True)
     
     amount: Mapped[float] = mapped_column(Numeric(12, 2))
     type: Mapped[TransactionType] = mapped_column(Enum(TransactionType))
