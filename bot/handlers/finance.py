@@ -568,11 +568,15 @@ async def acc_wiz_bearing(callback: CallbackQuery, state: FSMContext):
     if is_bearing:
         await state.set_state(AccountWizard.add_interest_rate)
         await callback.message.edit_text("Какой процент начисляется? (Введи число, например 5 или 5.5)")
+        await callback.answer()
     else:
-        await _save_account_from_wizard(callback.message.chat.id, state)
-        await state.set_state(AccountWizard.ask_more_accounts)
-        await callback.message.edit_text("Счет сохранен! Добавим еще один?", reply_markup=yes_no_kb())
-    await callback.answer()
+        try:
+            await _save_account_from_wizard(callback.from_user.id, state)
+            await state.set_state(AccountWizard.ask_more_accounts)
+            await callback.message.edit_text("Счет сохранен! Добавим еще один?", reply_markup=yes_no_kb())
+        except Exception as e:
+            await callback.message.answer(f"❌ Ошибка сохранения: {e}")
+        await callback.answer()
 
 @router.message(AccountWizard.add_interest_rate)
 async def acc_wiz_rate(message: Message, state: FSMContext):
@@ -589,22 +593,28 @@ async def acc_wiz_rate(message: Message, state: FSMContext):
 async def acc_wiz_period(callback: CallbackQuery, state: FSMContext):
     period = callback.data.split(":")[1]
     await state.update_data(interest_period=period)
-    await _save_account_from_wizard(callback.message.chat.id, state)
-    await state.set_state(AccountWizard.ask_more_accounts)
-    await callback.message.edit_text("Счет с процентами сохранен! Добавим еще один счет?", reply_markup=yes_no_kb())
+    try:
+        await _save_account_from_wizard(callback.from_user.id, state)
+        await state.set_state(AccountWizard.ask_more_accounts)
+        await callback.message.edit_text("Счет с процентами сохранен! Добавим еще один счет?", reply_markup=yes_no_kb())
+    except Exception as e:
+        await callback.message.answer(f"❌ Ошибка сохранения: {e}")
     await callback.answer()
 
 async def _save_account_from_wizard(user_id: int, state: FSMContext):
     data = await state.get_data()
-    async with AsyncSessionLocal() as session:
-        await crud.add_account(
-            session, user_id=user_id,
-            name=data["name"],
-            balance=data["balance"],
-            is_interest_bearing=data.get("is_interest_bearing", False),
-            interest_rate=data.get("interest_rate"),
-            interest_period=data.get("interest_period")
-        )
+    try:
+        async with AsyncSessionLocal() as session:
+            await crud.add_account(
+                session, user_id=user_id,
+                name=data["name"],
+                balance=data["balance"],
+                is_interest_bearing=data.get("is_interest_bearing", False),
+                interest_rate=data.get("interest_rate"),
+                interest_period=data.get("interest_period")
+            )
+    except Exception as e:
+        raise Exception(f"Failed to add account: {e}")
 
 @router.callback_query(AccountWizard.ask_more_accounts)
 async def acc_wiz_more(callback: CallbackQuery, state: FSMContext):

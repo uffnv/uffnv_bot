@@ -37,10 +37,12 @@ def _glitch_text(draw, xy, text, font, fill, offset=2):
 
 
 def _get_font(size: int, bold: bool = False) -> ImageFont.ImageFont:
-    """Возвращает системный шрифт нужного размера."""
+    """Возвращает скачанный шрифт Roboto."""
+    import os
     try:
-        # Windows
-        path = "C:/Windows/Fonts/arial.ttf" if not bold else "C:/Windows/Fonts/arialbd.ttf"
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        font_name = "Roboto-Bold.ttf" if bold else "Roboto-Regular.ttf"
+        path = os.path.join(base_dir, "assets", font_name)
         return ImageFont.truetype(path, size)
     except Exception:
         return ImageFont.load_default()

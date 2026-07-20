@@ -12,6 +12,7 @@ from bot.database.base import init_db
 from bot.handlers import common, finance, fitness, tasks, admin, habits, excel
 from bot.scheduler.jobs import setup_scheduler
 from bot.middlewares.clean_chat import CleanChatMiddleware
+from bot.middlewares.clean_bot import CleanBotMessagesMiddleware
 from aiohttp import web
 import os
 
@@ -46,6 +47,7 @@ async def main():
         token=BOT_TOKEN,
         default=DefaultBotProperties(parse_mode=ParseMode.HTML, disable_notification=True)
     )
+    bot.session.middleware(CleanBotMessagesMiddleware())
     dp = Dispatcher(storage=MemoryStorage())
     dp.message.outer_middleware(CleanChatMiddleware())
     dp.callback_query.outer_middleware(CleanChatMiddleware())
