@@ -25,6 +25,16 @@ DIVIDER  = (69, 162, 158)      # Teal
 
 W, H = 800, 420  # размер карточки
 
+def _draw_crosshair(draw, x, y, color, size=6):
+    draw.line([(x - size, y), (x + size, y)], fill=color, width=1)
+    draw.line([(x, y - size), (x, y + size)], fill=color, width=1)
+
+def _glitch_text(draw, xy, text, font, fill, offset=2):
+    x, y = xy
+    draw.text((x - offset, y), text, fill=(15, 240, 252), font=font)
+    draw.text((x + offset, y), text, fill=(255, 0, 127), font=font)
+    draw.text(xy, text, fill=fill, font=font)
+
 
 def _get_font(size: int, bold: bool = False) -> ImageFont.ImageFont:
     """Возвращает системный шрифт нужного размера."""
@@ -55,18 +65,27 @@ def _card_base(title: str, subtitle: str = "") -> tuple[Image.Image, ImageDraw.D
     
     # "Терминал" хедер
     font_term = _get_font(14)
-    draw.text((25, 20), "root@uffnv:~# ./life_manager.sh", fill=GREEN, font=font_term)
+    draw.text((25, 20), "root@uffnv:~# ./life_manager.sh --execute", fill=GREEN, font=font_term)
+    
+    # Декоративные кроссхейры по углам
+    _draw_crosshair(draw, 30, 40, ACCENT, 8)
+    _draw_crosshair(draw, W - 30, 40, ACCENT, 8)
+    _draw_crosshair(draw, W - 30, H - 30, ACCENT, 8)
+    _draw_crosshair(draw, 30, H - 30, ACCENT, 8)
 
-    # Заголовок
+    # Заголовок (с глитч-эффектом)
     font_title = _get_font(28, bold=True)
     font_sub = _get_font(18)
-    draw.text((40, 46), f"// {title.upper()}", fill=WHITE, font=font_title)
+    _glitch_text(draw, (40, 46), f"// {title.upper()}", font=font_title, fill=WHITE)
+    
     if subtitle:
         draw.text((40, 82), f"> {subtitle}", fill=YELLOW, font=font_sub)
 
-    # Разделитель
+    # Разделитель с декоративными элементами
     y_div = 110 if subtitle else 90
     draw.line([(40, y_div), (W - 40, y_div)], fill=DIVIDER, width=1)
+    draw.rectangle([W - 100, y_div - 2, W - 80, y_div + 2], fill=ACCENT)
+    draw.rectangle([W - 75, y_div - 2, W - 65, y_div + 2], fill=YELLOW)
 
     return img, draw
 
@@ -263,17 +282,28 @@ def generate_main_card(first_name: str) -> BytesIO:
     img = Image.new("RGB", (W, H), BG)
     draw = ImageDraw.Draw(img)
 
-    # Фоновый градиент (Neon)
+    # Градиентный фон + сетка (Grid)
     for i in range(H):
         ratio = i / H
         r = int(11 + ratio * 20)
         g = int(12 + ratio * 15)
         b = int(16 + ratio * 25)
         draw.line([(0, i), (W, i)], fill=(r, g, b))
+        
+    for x in range(0, W, 40):
+        draw.line([(x, 0), (x, H)], fill=(25, 30, 40), width=1)
+    for y in range(0, H, 40):
+        draw.line([(0, y), (W, y)], fill=(25, 30, 40), width=1)
 
     # Акцентный блок
     draw.rounded_rectangle([16, 16, W - 16, H - 16], 10, outline=ACCENT, width=3)
     draw.rounded_rectangle([18, 18, W - 18, H - 18], 8, fill=CARD)
+    
+    # Декоративные кроссхейры
+    _draw_crosshair(draw, 30, 30, GREEN, 10)
+    _draw_crosshair(draw, W - 30, 30, GREEN, 10)
+    _draw_crosshair(draw, W - 30, H - 30, GREEN, 10)
+    _draw_crosshair(draw, 30, H - 30, GREEN, 10)
 
     f_huge  = _get_font(38, bold=True)
     f_big   = _get_font(26, bold=True)
@@ -282,7 +312,8 @@ def generate_main_card(first_name: str) -> BytesIO:
     
     # "Терминал" хедер
     font_term = _get_font(14)
-    draw.text((25, 20), "root@uffnv:~# ./life_manager.sh", fill=ACCENT, font=font_term)
+    draw.text((25, 20), "root@uffnv:~# ./life_manager.sh --init-sys", fill=ACCENT, font=font_term)
+    draw.text((W - 150, 20), "SYS.MEM: 0x4F9A", fill=GRAY, font=font_term)
 
     # Приветствие
     hour = datetime.now().hour
@@ -290,10 +321,15 @@ def generate_main_card(first_name: str) -> BytesIO:
                "INIT_SEQ: День" if 12 <= hour < 18 else \
                "INIT_SEQ: Вечер" if 18 <= hour < 23 else "INIT_SEQ: Ночь"
     draw.text((40, 50), f"{greeting}", fill=YELLOW, font=f_med)
-    draw.text((40, 75), f"> SYSTEM ONLINE: {first_name.upper()}_", fill=GREEN, font=f_huge)
+    
+    # Глитч эффект для имени
+    _glitch_text(draw, (40, 75), f"> SYSTEM ONLINE: {first_name.upper()}_", font=f_huge, fill=GREEN)
 
     # Разделитель
     draw.line([(40, 130), (W - 40, 130)], fill=DIVIDER, width=2)
+    # Штрих-код справа на линии
+    for i in range(10):
+        draw.rectangle([W - 140 + i*6, 126, W - 138 + i*6, 134], fill=ACCENT)
 
     # Модули
     modules = [
@@ -306,16 +342,19 @@ def generate_main_card(first_name: str) -> BytesIO:
         # Карточка модуля
         draw.rounded_rectangle([x, 150, x + 227, 360], 12, fill=CARD2, outline=color, width=2)
         
+        # Декоративный hex-код модуля
+        draw.text((x + 160, 158), f"0x{i+1}A", fill=GRAY, font=font_term)
+        
         # ASCII Иконка или текст
         draw.text((x + 20, 170), f"[{i+1}]", fill=color, font=f_med)
         
-        # Название и описание
+        # Название
         draw.text((x + 20, 220), title.upper(), fill=WHITE, font=f_med)
         
-        # Разбиваем описание на 2 строки для аккуратности
+        # Разбиваем описание жестко по первой запятой
         words = desc.split(", ")
-        desc_line1 = ", ".join(words[:2])
-        desc_line2 = ", ".join(words[2:]) if len(words) > 2 else ""
+        desc_line1 = words[0]
+        desc_line2 = ", ".join(words[1:]) if len(words) > 1 else ""
         
         draw.text((x + 20, 260), f"> {desc_line1}", fill=GRAY, font=f_small)
         if desc_line2:
