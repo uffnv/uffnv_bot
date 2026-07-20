@@ -105,25 +105,25 @@ def generate_finance_card(
 
     # ─ Блок баланса ─
     bal_color = GREEN if balance >= 0 else RED
-    draw.text((40, 118), "Баланс", fill=GRAY, font=f_small)
+    draw.text((40, 128), "Баланс", fill=GRAY, font=f_small)
     bal_sign = "+" if balance >= 0 else ""
-    draw.text((40, 140), f"{bal_sign}{balance:,.0f} ₽", fill=bal_color, font=f_big)
+    draw.text((40, 150), f"{bal_sign}{balance:,.0f} ₽", fill=bal_color, font=f_big)
 
     # ─ Доходы / Расходы ─
-    draw.rounded_rectangle([40, 195, 270, 255], 12, fill=CARD2)
-    draw.text((56, 205), "Доходы", fill=GRAY, font=f_label)
-    draw.text((56, 226), f"+{income:,.0f} ₽", fill=GREEN, font=f_med)
+    draw.rounded_rectangle([40, 205, 270, 265], 12, fill=CARD2)
+    draw.text((56, 215), "Доходы", fill=GRAY, font=f_label)
+    draw.text((56, 236), f"+{income:,.0f} ₽", fill=GREEN, font=f_med)
 
-    draw.rounded_rectangle([285, 195, 515, 255], 12, fill=CARD2)
-    draw.text((301, 205), "Расходы", fill=GRAY, font=f_label)
-    draw.text((301, 226), f"-{expense:,.0f} ₽", fill=RED, font=f_med)
+    draw.rounded_rectangle([285, 205, 515, 265], 12, fill=CARD2)
+    draw.text((301, 215), "Расходы", fill=GRAY, font=f_label)
+    draw.text((301, 236), f"-{expense:,.0f} ₽", fill=RED, font=f_med)
 
     # ─ Топ расходов ─
     if top_cats and expense > 0:
-        draw.text((40, 275), "Куда уходят деньги", fill=GRAY, font=f_label)
+        draw.text((40, 285), "Куда уходят деньги", fill=GRAY, font=f_label)
         cat_colors = [RED, YELLOW, ACCENT]
         for i, (name, amount) in enumerate(top_cats[:3]):
-            y = 298 + i * 34
+            y = 308 + i * 34
             pct = min(amount / expense, 1.0)
             # Название + сумма
             label = f"{name[:18]}"
@@ -133,14 +133,14 @@ def generate_finance_card(
             _bar(draw, 230, y + 5, 290, 14, pct, cat_colors[i])
             draw.text((532, y + 3), f"  {pct*100:.0f}%", fill=GRAY, font=f_label)
     else:
-        draw.text((40, 290), "Трат в этом периоде нет", fill=GRAY, font=f_small)
+        draw.text((40, 300), "Трат в этом периоде нет", fill=GRAY, font=f_small)
 
     # ─ Правый акцент ─
-    draw.rounded_rectangle([W - 175, 118, W - 40, 185], 14, fill=CARD2)
-    draw.text((W - 163, 125), "Доход/Расход", fill=GRAY, font=f_label)
+    draw.rounded_rectangle([W - 175, 128, W - 40, 195], 14, fill=CARD2)
+    draw.text((W - 163, 135), "Доход/Расход", fill=GRAY, font=f_label)
     ratio = income / max(expense, 1)
     ratio_color = GREEN if ratio >= 1 else RED
-    draw.text((W - 163, 148), f"×{ratio:.1f}", fill=ratio_color, font=f_med)
+    draw.text((W - 163, 158), f"×{ratio:.1f}", fill=ratio_color, font=f_med)
 
     return _to_bytes(img)
 
@@ -164,22 +164,22 @@ def generate_fitness_card(
     f_label = _get_font(15)
 
     # ─ Калории ─
-    draw.text((40, 118), "Калорий сегодня", fill=GRAY, font=f_label)
-    draw.text((40, 140), f"{calories:,}", fill=WHITE, font=f_big)
-    draw.text((40 + len(str(calories)) * 22, 160), " ккал", fill=GRAY, font=f_small)
+    draw.text((40, 128), "Калорий сегодня", fill=GRAY, font=f_label)
+    draw.text((40, 150), f"{calories:,}", fill=WHITE, font=f_big)
+    draw.text((40 + len(str(calories)) * 22, 170), " ккал", fill=GRAY, font=f_small)
 
     # Прогресс-бар калорий
     if goal_calories:
         pct = calories / goal_calories
         pct_color = GREEN if pct <= 1.0 else RED
-        _bar(draw, 40, 195, W - 80, 18, pct, pct_color)
+        _bar(draw, 40, 205, W - 80, 18, pct, pct_color)
         remaining = goal_calories - calories
         status = f"Осталось {remaining} ккал" if remaining >= 0 else f"Перебор на {abs(remaining)} ккал"
         status_color = GRAY if remaining >= 0 else RED
-        draw.text((40, 220), f"Цель: {goal_calories} ккал  ·  {status}", fill=status_color, font=f_label)
+        draw.text((40, 230), f"Цель: {goal_calories} ккал  ·  {status}", fill=status_color, font=f_label)
     else:
-        _bar(draw, 40, 195, W - 80, 18, 0.5, ACCENT)
-        draw.text((40, 220), "Установи цель в разделе «Мои цели»", fill=GRAY, font=f_label)
+        _bar(draw, 40, 205, W - 80, 18, 0.5, ACCENT)
+        draw.text((40, 230), "Установи цель в разделе «Мои цели»", fill=GRAY, font=f_label)
 
     # ─ КБЖУ блоки ─
     macros = [
@@ -190,20 +190,20 @@ def generate_fitness_card(
     block_w = (W - 80 - 24) // 3
     for i, (label, val, color, unit) in enumerate(macros):
         x = 40 + i * (block_w + 12)
-        draw.rounded_rectangle([x, 252, x + block_w, 330], 12, fill=CARD2)
-        draw.text((x + 14, 262), label, fill=GRAY, font=f_label)
-        draw.text((x + 14, 285), f"{val:.1f}{unit}", fill=color, font=f_med)
+        draw.rounded_rectangle([x, 262, x + block_w, 340], 12, fill=CARD2)
+        draw.text((x + 14, 272), label, fill=GRAY, font=f_label)
+        draw.text((x + 14, 295), f"{val:.1f}{unit}", fill=color, font=f_med)
 
     # ─ Вес ─
     if current_weight:
-        draw.rounded_rectangle([40, 345, W - 40, 395], 12, fill=CARD2)
-        draw.text((56, 355), "Текущий вес", fill=GRAY, font=f_label)
-        draw.text((220, 355), f"{current_weight:.1f} кг", fill=WHITE, font=f_med)
+        draw.rounded_rectangle([40, 355, W - 40, 405], 12, fill=CARD2)
+        draw.text((56, 365), "Текущий вес", fill=GRAY, font=f_label)
+        draw.text((220, 365), f"{current_weight:.1f} кг", fill=WHITE, font=f_med)
         if target_weight:
             diff = current_weight - target_weight
             diff_color = RED if diff > 0 else GREEN
             diff_str = f"до цели: {abs(diff):.1f} кг {'↓' if diff > 0 else '↑'}"
-            draw.text((420, 358), diff_str, fill=diff_color, font=f_small)
+            draw.text((420, 368), diff_str, fill=diff_color, font=f_small)
 
     return _to_bytes(img)
 
@@ -225,17 +225,17 @@ def generate_tasks_card(
 
     # ─ Прогресс ─
     pct = done_count / max(total_count, 1)
-    _bar(draw, 40, 115, W - 80, 22, pct, GREEN)
-    draw.text((40, 143),
+    _bar(draw, 40, 125, W - 80, 22, pct, GREEN)
+    draw.text((40, 153),
         f"Выполнено {done_count} из {total_count} задач  ·  {pct*100:.0f}%",
         fill=GRAY, font=f_label)
 
     if not tasks_today:
-        draw.rounded_rectangle([40, 175, W - 40, 250], 14, fill=CARD2)
-        draw.text((60, 200), "Задач на сегодня нет — можно расслабиться", fill=GRAY, font=f_small)
+        draw.rounded_rectangle([40, 185, W - 40, 260], 14, fill=CARD2)
+        draw.text((60, 210), "Задач на сегодня нет — можно расслабиться", fill=GRAY, font=f_small)
     else:
         for i, (title, priority, is_done) in enumerate(tasks_today[:5]):
-            y = 175 + i * 42
+            y = 185 + i * 42
             prio_color = PRIO_COLOR.get(priority, GRAY)
             row_bg = CARD2 if not is_done else (28, 40, 30)
             draw.rounded_rectangle([40, y, W - 40, y + 34], 10, fill=row_bg)
@@ -307,21 +307,21 @@ def generate_main_card(first_name: str) -> BytesIO:
         draw.rounded_rectangle([x, 150, x + 227, 360], 12, fill=CARD2, outline=color, width=2)
         
         # ASCII Иконка или текст
-        draw.text((x + 20, 170), f"[{i+1}]", fill=color, font=f_big)
+        draw.text((x + 20, 170), f"[{i+1}]", fill=color, font=f_med)
         
         # Название и описание
-        draw.text((x + 20, 230), title.upper(), fill=WHITE, font=f_big)
+        draw.text((x + 20, 220), title.upper(), fill=WHITE, font=f_med)
         
         # Разбиваем описание на 2 строки для аккуратности
         words = desc.split(", ")
         desc_line1 = ", ".join(words[:2])
         desc_line2 = ", ".join(words[2:]) if len(words) > 2 else ""
         
-        draw.text((x + 20, 270), f"> {desc_line1}", fill=GRAY, font=f_small)
+        draw.text((x + 20, 260), f"> {desc_line1}", fill=GRAY, font=f_small)
         if desc_line2:
-            draw.text((x + 20, 290), f"  {desc_line2}", fill=GRAY, font=f_small)
+            draw.text((x + 20, 280), f"  {desc_line2}", fill=GRAY, font=f_small)
         
         # Декоративный "загрузочный" бар
-        _bar(draw, x + 20, 330, 187, 8, 0.7 + i*0.1, color, CARD)
+        _bar(draw, x + 20, 320, 187, 8, 0.7 + i*0.1, color, CARD)
 
     return _to_bytes(img)
